@@ -44,7 +44,7 @@ class MiddlemanToc
     include Indent
 
     def_delegators :@children, :empty?
-    attr_reader :level, :path, :children, :active
+    attr_reader :level, :path, :children
 
     def initialize(level, path)
       @level = level
@@ -58,26 +58,40 @@ class MiddlemanToc
 
     def activate(active)
       children.each { |child| child.activate(active) }
-      @active = level == 1 || active == path || children.any?(&:active?)
+      @active = active == path
     end
 
     def render
-      "<ul#{' class="active"' if active}>\n#{indent(children.map(&:render).join("\n"))}\n</ul>"
+      %(<ul#{%( class="active") if active?}>\n#{render_children}\n</ul>) unless children.empty?
+    end
+
+    def render_children
+      indent(children.map(&:render).join("\n"))
+    end
+
+    def active?
+      @active
+    end
+
+    def expanded?
+      level == 1 || children.any?(&:active?)
     end
   end
 
-  class Page < Struct.new(:level, :page, :path, :directory?)
+  class Page < Struct.new(:directory, :level, :page, :path)
     include Indent
 
     attr_reader :active, :active
 
     def activate(active)
       @active = active == path
+      directory.activate(active)
     end
 
     def render
       html = title
       html = link("/#{path}.html", html) if File.file?(filename)
+      html = [html, directory.render].join("\n")
       html = item(html)
       html
     end
@@ -87,11 +101,14 @@ class MiddlemanToc
     end
 
     def item(content)
-      %(<li#{%( class="#{classes}") if classes}>#{content}</li>)
+      %(<li#{%( class="#{classes}") unless classes.empty?}>#{content}</li>)
+    end
+
+    def directory?
+      !directory.empty?
     end
 
     def active?
-      # current == path
       @active
     end
 
@@ -99,6 +116,7 @@ class MiddlemanToc
       classes = []
       classes << 'active' if active?
       classes << 'directory' if directory?
+      classes << 'expanded' if active? && !directory.empty? || directory.expanded?
       classes.join(' ')
     end
 
@@ -165,8 +183,8 @@ class MiddlemanToc
         child = build(path, level + 1)
         path = path.sub('./', '')
         page = page_for("#{path}.html")
-        tree.children << Page.new(level, page, path, !child.empty?)
-        tree << child unless child.empty?
+        tree.children << Page.new(child, level, page, path)
+        # tree << child unless child.empty?
       end
       tree
     end
