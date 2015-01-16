@@ -39,16 +39,18 @@ class MiddlemanToc
     end
   end
 
-  class Tree
+  class Page
     extend Forwardable
     include Indent
 
     def_delegators :@children, :empty?
-    attr_reader :level, :path, :children
 
-    def initialize(level, path)
+    attr_reader :level, :path, :page, :children, :active
+
+    def initialize(level, path, page)
       @level = level
       @path = path
+      @page = page
       @children = []
     end
 
@@ -62,38 +64,18 @@ class MiddlemanToc
     end
 
     def render
-      %(<ul#{%( class="active") if active?}>\n#{render_children}\n</ul>) unless children.empty?
+      if level == 1
+        render_children
+      else
+        html = title
+        html = link("/#{path}.html", html) if File.file?(filename)
+        html = [html, render_children].join("\n") unless children.empty?
+        item(html)
+      end
     end
 
     def render_children
-      indent(children.map(&:render).join("\n"))
-    end
-
-    def active?
-      @active
-    end
-
-    def expanded?
-      level == 1 || children.any?(&:active?)
-    end
-  end
-
-  class Page < Struct.new(:directory, :level, :page, :path)
-    include Indent
-
-    attr_reader :active, :active
-
-    def activate(active)
-      @active = active == path
-      directory.activate(active)
-    end
-
-    def render
-      html = title
-      html = link("/#{path}.html", html) if File.file?(filename)
-      html = [html, directory.render].join("\n")
-      html = item(html)
-      html
+      %(<ul#{%( class="active") if active?}>\n#{indent(children.map(&:render).join("\n"))}\n</ul>)
     end
 
     def link(href, content)
@@ -104,20 +86,24 @@ class MiddlemanToc
       %(<li#{%( class="#{classes}") unless classes.empty?}>#{content}</li>)
     end
 
+    def classes
+      classes = []
+      classes << 'active' if active?
+      classes << 'directory' if directory?
+      classes << 'expanded' if active? && !children.empty? || expanded?
+      classes.join(' ')
+    end
+
     def directory?
-      !directory.empty?
+      !children.empty?
     end
 
     def active?
       @active
     end
 
-    def classes
-      classes = []
-      classes << 'active' if active?
-      classes << 'directory' if directory?
-      classes << 'expanded' if active? && !directory.empty? || directory.expanded?
-      classes.join(' ')
+    def expanded?
+      level == 1 || children.any?(&:active?)
     end
 
     def title
@@ -136,7 +122,7 @@ class MiddlemanToc
     end
 
     def path_title
-      path.sub(/[\d]{2}-/, '').titleize
+      File.basename(path).sub(/[\d]{2}-/, '').titleize
     end
 
     def filename
@@ -177,16 +163,11 @@ class MiddlemanToc
 
   private
 
-    def build(dir, level = 1)
-      tree = Tree.new(level, dir.sub('./', ''))
-      paths.select(dir).each do |path|
-        child = build(path, level + 1)
-        path = path.sub('./', '')
-        page = page_for("#{path}.html")
-        tree.children << Page.new(child, level, page, path)
-        # tree << child unless child.empty?
-      end
-      tree
+    def build(path, level = 1)
+      path = path.sub('./', '')
+      page = Page.new(level, path, page_for("#{path}.html"))
+      paths.select(path).each { |path| page.children << build(path, level + 1) }
+      page
     end
 
     def page_for(path)
