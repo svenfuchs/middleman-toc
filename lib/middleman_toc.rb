@@ -4,13 +4,14 @@ require 'middleman_toc/link'
 require 'middleman_toc/page'
 require 'middleman_toc/paths'
 require 'forwardable'
+require 'yaml'
 
 class MiddlemanToc
   attr_reader :sitemap, :paths, :tree
 
   def initialize(sitemap)
     @sitemap = sitemap
-    @paths = Paths.new(sitemap)
+    @paths = Paths.new(manifest)
     @tree = build('.')
   end
 
@@ -32,6 +33,10 @@ class MiddlemanToc
   end
 
   private
+
+    def manifest
+      @manifest ||= YAML.parse('toc.yml')
+    end
 
     def build(path, level = 1)
       path = path.sub('./', '')

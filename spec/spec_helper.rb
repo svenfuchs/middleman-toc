@@ -1,5 +1,5 @@
-require 'middleman-toc'
-require 'middleman-core/configuration'
+require 'middleman_toc'
+# require 'middleman-core/configuration'
 
 RSpec.configure do |c|
   c.expect_with :rspec

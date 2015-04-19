@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    middleman-toc (0.0.1)
+    middleman-toc (0.0.2)
       titleize
 
 GEM

@@ -1,11 +1,9 @@
-require 'spec_helper'
-
 describe Middleman::Toc do
-  let(:titles)  { ['Title 1', 'Title 2', 'Title 2-1', 'Title 2-2', 'Book'] }
-  let(:paths)   { %w(1.html 2.html 2/2-1.html 2/2-2.html index.html) }
-  let(:pages)   { paths.map { |path| stub(path: path) } }
-  let(:sitemap) { stub(resources: pages) }
-  let(:toc)     { Middleman::Toc.new(sitemap) }
+  let(:titles)   { ['Title 1', 'Title 2', 'Title 2-1', 'Title 2-2', 'Book'] }
+  let(:paths)    { %w(1.html 2.html 2/2-1.html 2/2-2.html index.html) }
+  let(:pages)    { paths.map { |path| stub(path: path) } }
+  let(:sitemap)  { stub(resources: pages) }
+  let(:toc)      { Middleman::Toc.new(sitemap) }
 
   subject { toc.render }
 
