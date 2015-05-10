@@ -1,3 +1,3 @@
-class MiddlemanToc
+module MiddlemanToc
   VERSION = "0.0.2"
 end

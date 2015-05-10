@@ -1,57 +1,41 @@
 require 'middleman'
-require 'middleman_toc/extension'
-require 'middleman_toc/link'
-require 'middleman_toc/page'
-require 'middleman_toc/paths'
-require 'forwardable'
 require 'yaml'
+require 'middleman_toc/extension'
+require 'middleman_toc/toc'
+require 'middleman_toc/validator'
 
-class MiddlemanToc
-  attr_reader :sitemap, :paths, :tree
-
-  def initialize(sitemap)
-    @sitemap = sitemap
-    @paths = Paths.new(manifest)
-    @tree = build('.')
-  end
-
-  def render(current_path)
-    tree.activate(current_path.sub('.html', ''))
-    tree.render
-  end
-
-  def prev(current_path)
-    page = page_for(current_path)
-    href = paths.prev(page.path)
-    Link.new(href, 'Previous', class: 'prev').render if href
-  end
-
-  def next(current_path)
-    page = page_for(current_path)
-    href = paths.next(page.path)
-    Link.new(href, 'Next', class: 'next').render if href
-  end
-
-  private
-
-    def manifest
-      @manifest ||= YAML.parse('toc.yml')
+module MiddlemanToc
+  class << self
+    def instance(sitemap)
+      @instance ||= Toc.new(pages(sitemap)).tap do |toc|
+        Validator.new(toc.pages, toc.root).validate!
+      end
     end
 
-    def build(path, level = 1)
-      path = path.sub('./', '')
-      page = Page.new(level, path, page_for("#{path}.html"))
-      paths.select(path).each { |path| page.children << build(path, level + 1) }
-      page
+    def toc(sitemap, path)
+      rendering { instance(sitemap).toc(path) } # .tap { |html| puts html }
     end
 
-    def page_for(path)
-      sitemap.find_resource_by_path(path)
+    def prev_page(sitemap, path)
+      rendering { instance(sitemap).prev_page(path) }
     end
 
-    def title_for(path)
-      File.read(path)
+    def next_page(sitemap, path)
+      rendering { instance(sitemap).next_page(path) }
     end
+
+    def pages(sitemap)
+      sitemap.resources.inject({}) do |pages, page|
+        pages.merge(page.path.gsub(%r((^|\/)[\d]+\-), '').sub('.html', '\1') => page)
+      end
+    end
+
+    def rendering
+      return if @rendering
+      @rendering = true
+      yield.tap { @rendering = false }
+    end
+  end
 end
 
 Middleman::Extensions.register(:toc, MiddlemanToc::Extension)
