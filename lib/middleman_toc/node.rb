@@ -4,10 +4,6 @@ module MiddlemanToc
   class Node < Struct.new(:level, :path, :title, :children)
     attr_reader :active
 
-    def find(path)
-      flatten.detect { |node| node.path == path }
-    end
-
     def flatten
       [self, children.map(&:flatten)].flatten
     end
