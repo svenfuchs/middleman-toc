@@ -16,12 +16,12 @@ module MiddlemanToc
 
     def prev_page(path)
       node = prev_node(path)
-      Tag.new(:a, 'Previous', class: 'prev', href: "/#{node.path}.html").render if node
+      Tag.new(:a, 'Previous', class: 'prev', href: "/#{node.path}.html").render if node && node.path
     end
 
     def next_page(path)
       node = next_node(path)
-      Tag.new(:a, 'Next', class: 'next', href: "/#{node.path}.html").render if node
+      Tag.new(:a, 'Next', class: 'next', href: "/#{node.path}.html").render if node && node.path
     end
 
     private
