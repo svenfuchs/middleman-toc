@@ -14,6 +14,10 @@ module MiddlemanToc
       root.render
     end
 
+    def nodes
+      @nodes ||= root.flatten
+    end
+
     def prev_page(path)
       node = prev_node(path)
       Tag.new(:a, 'Previous', class: 'prev', href: "/#{node.path}.html").render if node && node.path
@@ -33,10 +37,6 @@ module MiddlemanToc
       def manifest
         raise 'Could not load data/toc.yml' unless File.exists?('data/toc.yml')
         normalize_nodes(YAML.load_file('data/toc.yml'))
-      end
-
-      def nodes
-        @nodes ||= root.flatten
       end
 
       def find(path)

@@ -5,6 +5,12 @@ require 'middleman_toc/toc'
 require 'middleman_toc/validator'
 
 module MiddlemanToc
+  class Page < Struct.new(:resource, :title)
+    def render
+      resource.render(layout: false)
+    end
+  end
+
   class << self
     def instance(sitemap)
       @instance ||= Toc.new(pages(sitemap)).tap do |toc|
@@ -16,6 +22,16 @@ module MiddlemanToc
       rendering { instance(sitemap).toc(path) } # .tap { |html| puts html }
     end
 
+    def all_pages(sitemap)
+      rendering do
+        instance(sitemap).nodes.inject([]) do |result, node|
+          page = pages(sitemap)[node.path]
+          result << Page.new(page, node.title) if page
+          result
+        end
+      end
+    end
+
     def prev_page(sitemap, path)
       rendering { instance(sitemap).prev_page(path) }
     end
@@ -25,7 +41,7 @@ module MiddlemanToc
     end
 
     def pages(sitemap)
-      sitemap.resources.inject({}) do |pages, page|
+      @pages ||= sitemap.resources.inject({}) do |pages, page|
         pages.merge(page.path.gsub(%r((^|\/)[\d]+\-), '').sub('.html', '\1') => page)
       end
     end
